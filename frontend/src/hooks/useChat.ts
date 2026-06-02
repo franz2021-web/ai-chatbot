@@ -2,9 +2,9 @@
  * useChat Hook - Manages chat state and streaming with tool calling
  */
 
-import { useState, useCallback, useRef } from "react";
-import { Message, ChatState, ToolCallDisplay } from "../types";
-import { chatMessage, ChatApiError } from "../services/chatApi";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Message, ChatState, ToolCallDisplay, ToolDefinition } from "../types";
+import { chatMessage, ChatApiError, getAvailableTools } from "../services/chatApi";
 
 const SYSTEM_PROMPT =
   "You are a helpful AI assistant. You can use tools to help answer questions. When using tools, be clear about what you're doing.";
@@ -26,7 +26,20 @@ export function useChat() {
     currentToolInput: "",
   });
 
+  const [tools, setTools] = useState<ToolDefinition[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Fetch available tools on mount
+  useEffect(() => {
+    getAvailableTools()
+      .then((availableTools) => {
+        setTools(availableTools);
+        console.log("Available tools loaded:", availableTools);
+      })
+      .catch((error) => {
+        console.error("Failed to load tools:", error);
+      });
+  }, []);
 
   /**
    * Send a user message and stream the response
@@ -70,7 +83,8 @@ export function useChat() {
             ...state.messages,
             { role: "user", content: userMessage },
           ] as Message[],
-          SYSTEM_PROMPT
+          SYSTEM_PROMPT,
+          tools
         );
 
         for await (const event of stream) {

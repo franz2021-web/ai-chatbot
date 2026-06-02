@@ -10,10 +10,25 @@ from fastapi.responses import StreamingResponse
 
 from app.models.schemas import ChatRequest
 from app.services.llm_service import get_llm_provider
+from app.services.tool_executor import get_executor
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/tools")
+async def get_tools():
+    """
+    Get available tools for the chat API.
+
+    Returns:
+        List of tool definitions in OpenAI format
+    """
+    executor = get_executor()
+    return {
+        "tools": executor.get_tool_definitions()
+    }
 
 
 @router.post("/chat/completions")

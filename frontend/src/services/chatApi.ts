@@ -115,18 +115,36 @@ export async function* streamChatCompletion(
 }
 
 /**
+ * Fetch available tools from the backend
+ */
+export async function getAvailableTools(): Promise<ToolDefinition[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tools`);
+    if (!response.ok) {
+      throw new ChatApiError(response.status, `Failed to fetch tools: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.tools || [];
+  } catch (error) {
+    console.error("Failed to fetch tools:", error);
+    return [];
+  }
+}
+
+/**
  * Send a chat message and get a streamed response
  */
 export async function* chatMessage(
   messages: Message[],
-  system?: string
+  system?: string,
+  tools?: ToolDefinition[]
 ): AsyncGenerator<StreamEvent> {
   const request: ChatRequest = {
     messages,
     system: system || "You are a helpful assistant.",
     temperature: 0.7,
     max_tokens: 2048,
-    tools: [],
+    tools: tools || [],
   };
 
   yield* streamChatCompletion(request);
