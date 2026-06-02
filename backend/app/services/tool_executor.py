@@ -41,13 +41,13 @@ class ToolExecutor:
             tool_input: Input parameters for the tool
 
         Returns:
-            Tool result as a dict
-
-        Raises:
-            ValueError: If tool name is unknown
+            Tool result as a dict with success/error status
         """
+        # Check if tool exists
         if tool_name not in self.tools:
-            raise ValueError(f"Unknown tool: {tool_name}")
+            error_msg = f"Unknown tool: {tool_name}. Available tools: {list(self.tools.keys())}"
+            logger.warning(error_msg)
+            return {"success": False, "error": error_msg}
 
         tool_func = self.tools[tool_name]
         logger.info(f"Executing tool: {tool_name} with input: {tool_input}")
