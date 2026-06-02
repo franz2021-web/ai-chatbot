@@ -1,13 +1,21 @@
 /**
- * ChatInterface Component - Main chat UI with Tailwind CSS
+ * ChatInterface Component - Main chat UI with Tailwind CSS and Tool Calling
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
+import { ToolCall } from "./ToolCall";
 
 export function ChatInterface() {
-  const { messages, isLoading, error, currentStreamingMessage, sendMessage, clearHistory } = useChat();
+  const { messages, isLoading, error, currentStreamingMessage, toolCalls, sendMessage, clearHistory } =
+    useChat();
   const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, currentStreamingMessage, toolCalls]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -43,7 +51,10 @@ export function ChatInterface() {
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col justify-center items-center h-full text-center text-white/70">
             <p className="text-xl font-semibold mb-2">Start a conversation!</p>
-            <p>Try asking me to calculate something, search the web, or get the weather.</p>
+            <p className="text-sm">
+              Ask me to calculate (e.g., "What is 2+2?"), search the web (e.g., "Latest AI news"), or get the weather
+              (e.g., "Weather in New York").
+            </p>
           </div>
         )}
 
@@ -59,22 +70,28 @@ export function ChatInterface() {
             <div className="text-xs font-semibold uppercase tracking-wider opacity-70">
               {msg.role === "user" ? "You" : "Assistant"}
             </div>
-            <div className="text-sm leading-relaxed">
-              {msg.content}
-            </div>
+            <div className="text-sm leading-relaxed">{msg.content}</div>
             {msg.timestamp && (
-              <div className="text-xs opacity-60 mt-1">
-                {msg.timestamp.toLocaleTimeString()}
-              </div>
+              <div className="text-xs opacity-60 mt-1">{msg.timestamp.toLocaleTimeString()}</div>
             )}
           </div>
         ))}
 
+        {/* Tool Calls Display */}
+        {toolCalls.length > 0 && (
+          <div className="flex flex-col gap-2 p-4 rounded-lg max-w-2xl self-start bg-black/20 text-white animate-slideIn">
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Tools Used</div>
+            <div className="space-y-2">
+              {toolCalls.map((tool) => (
+                <ToolCall key={tool.id} tool={tool} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {isLoading && currentStreamingMessage && (
           <div className="flex flex-col gap-2 p-4 rounded-lg max-w-2xl self-start bg-black/30 text-white animate-slideIn">
-            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">
-              Assistant
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Assistant</div>
             <div className="text-sm leading-relaxed">
               {currentStreamingMessage}
               <span className="inline-block ml-1 animate-blink">▌</span>
@@ -84,25 +101,32 @@ export function ChatInterface() {
 
         {isLoading && !currentStreamingMessage && (
           <div className="flex flex-col gap-2 p-4 rounded-lg max-w-2xl self-start bg-black/30 text-white animate-slideIn">
-            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">
-              Assistant
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Assistant</div>
             <div className="flex gap-1 items-center">
-              <span className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom"></span>
-              <span className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom" style={{ animationDelay: "-0.32s" }}></span>
-              <span className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom" style={{ animationDelay: "-0.16s" }}></span>
+              <span
+                className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom"
+                style={{ animationDelay: "0s" }}
+              ></span>
+              <span
+                className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom"
+                style={{ animationDelay: "-0.32s" }}
+              ></span>
+              <span
+                className="inline-block w-2 h-2 bg-white/60 rounded-full animate-bounce-custom"
+                style={{ animationDelay: "-0.16s" }}
+              ></span>
             </div>
           </div>
         )}
 
         {error && (
           <div className="flex flex-col gap-2 p-4 rounded-lg max-w-2xl self-center bg-red-500/20 text-red-200 border border-red-500/50">
-            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">
-              Error
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Error</div>
             <div className="text-sm">{error}</div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}

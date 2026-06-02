@@ -20,6 +20,15 @@ export interface ToolResult {
   content: string;
 }
 
+export interface ToolCallDisplay {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+  status: "pending" | "executing" | "completed" | "error";
+  result?: unknown;
+  error?: string;
+}
+
 export interface StreamEvent {
   type:
     | "content_block_start"
