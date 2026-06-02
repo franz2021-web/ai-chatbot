@@ -62,19 +62,82 @@ class NVIDIAProvider(LLMProvider):
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        """Stream message from NVIDIA API."""
-        # Implementation will be added in Phase 2
-        logger.info("Streaming message from NVIDIA API")
+        """Stream message from NVIDIA API using OpenAI-compatible interface."""
+        try:
+            from openai import OpenAI
 
-        # Placeholder: yield at least one event so code doesn't break
-        yield {
-            "type": "content_block_delta",
-            "delta": {
-                "type": "text_delta",
-                "text": "[NVIDIA API implementation pending]"
+            # Use provided model or fall back to default
+            model_to_use = model or self.model
+
+            # Initialize OpenAI client pointing to NVIDIA API
+            client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.api_base
+            )
+
+            # Build messages list with system prompt
+            messages_to_send = []
+            if system:
+                messages_to_send.append({"role": "system", "content": system})
+            messages_to_send.extend(messages)
+
+            logger.info(f"Streaming from NVIDIA ({model_to_use}) with {len(messages)} messages")
+
+            # Call NVIDIA API with streaming
+            stream = client.chat.completions.create(
+                model=model_to_use,
+                messages=messages_to_send,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+                tools=tools if tools else None,
+            )
+
+            # Process streaming response
+            for chunk in stream:
+                # Skip if no choices (can happen at stream end)
+                if not chunk.choices:
+                    continue
+
+                choice = chunk.choices[0]
+
+                # Handle text content
+                if choice.delta.content:
+                    yield {
+                        "type": "content_block_delta",
+                        "delta": {
+                            "type": "text_delta",
+                            "text": choice.delta.content
+                        }
+                    }
+
+                # Handle tool calls if present
+                if hasattr(choice.delta, "tool_calls") and choice.delta.tool_calls:
+                    for tool_call in choice.delta.tool_calls:
+                        yield {
+                            "type": "content_block_delta",
+                            "delta": {
+                                "type": "tool_use",
+                                "id": tool_call.id,
+                                "name": tool_call.function.name,
+                                "input": tool_call.function.arguments
+                            }
+                        }
+
+            # Signal completion
+            yield {"type": "message_stop"}
+            logger.info("NVIDIA stream completed successfully")
+
+        except Exception as e:
+            logger.error(f"NVIDIA API error: {str(e)}", exc_info=True)
+            yield {
+                "type": "error",
+                "error": {
+                    "type": "api_error",
+                    "message": f"NVIDIA API error: {str(e)}"
+                }
             }
-        }
-        yield {"type": "message_stop"}
+            yield {"type": "message_stop"}
 
 
 class AnthropicProvider(LLMProvider):

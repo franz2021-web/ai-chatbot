@@ -6,6 +6,10 @@ Coordinates between LLM tool calls and actual tool implementations.
 import logging
 from typing import Any, Dict
 
+from app.tools.calculator import calculate, CALCULATOR_TOOL_DEFINITION
+from app.tools.web_search import search_web, WEB_SEARCH_TOOL_DEFINITION
+from app.tools.weather import get_weather, WEATHER_TOOL_DEFINITION
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,8 +18,17 @@ class ToolExecutor:
 
     def __init__(self):
         """Initialize tool executor with available tools."""
-        # Tools will be registered in Phase 3
-        self.tools: Dict[str, Any] = {}
+        self.tools: Dict[str, Any] = {
+            "calculator": calculate,
+            "web_search": search_web,
+            "weather": get_weather,
+        }
+        self.tool_definitions = {
+            "calculator": CALCULATOR_TOOL_DEFINITION,
+            "web_search": WEB_SEARCH_TOOL_DEFINITION,
+            "weather": WEATHER_TOOL_DEFINITION,
+        }
+        logger.info(f"Initialized ToolExecutor with tools: {list(self.tools.keys())}")
 
     async def execute_tool(
         self, tool_name: str, tool_input: Dict[str, Any]
@@ -59,15 +72,14 @@ class ToolExecutor:
         self.tools[name] = func
         logger.info(f"Registered tool: {name}")
 
-    def get_tool_definitions(self) -> Dict[str, Any]:
+    def get_tool_definitions(self) -> list:
         """
         Get tool definitions for sending to LLM.
 
         Returns:
-            Dictionary of tool name -> tool definition
+            List of tool definitions for OpenAI-compatible API
         """
-        # Will be populated in Phase 3
-        return {}
+        return list(self.tool_definitions.values())
 
 
 # Global instance

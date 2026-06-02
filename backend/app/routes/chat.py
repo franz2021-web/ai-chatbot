@@ -34,7 +34,7 @@ async def chat_completions(request: ChatRequest):
         async def event_generator():
             """Generate SSE events from LLM stream."""
             try:
-                # Call LLM provider (not yet implemented)
+                # Call LLM provider and stream results
                 async for event in llm_provider.stream_message(
                     messages=request.messages,
                     tools=request.tools,
